@@ -1,4 +1,4 @@
-package types
+package richcty
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/zclconf/go-cty/cty"
 )
+
+var bg = context.Background()
 
 // testWatcher records every OnChange call for inspection in tests.
 type testWatcher struct {

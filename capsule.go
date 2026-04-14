@@ -1,4 +1,4 @@
-package ctyutil
+package richcty
 
 import (
 	"fmt"

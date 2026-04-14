@@ -1,29 +1,20 @@
-package functions
+package richcty
 
 import (
 	"context"
 	"fmt"
 
-	cfg "github.com/tsarna/vinculum/config"
-	"github.com/tsarna/vinculum/ctyutil"
-	"github.com/tsarna/vinculum/types"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 )
-
-func init() {
-	cfg.RegisterFunctionPlugin("generic", func(_ *cfg.Config) map[string]function.Function {
-		return GetGenericFunctions()
-	})
-}
 
 // contextAndThing extracts an optional leading context and the "thing" value from
 // args. If args[0] is a context capsule/object it is used as the context and
 // args[1] is the thing; otherwise context.Background() is used and args[0] is
 // the thing. Returns (ctx, thing, remaining args after thing).
 func contextAndThing(args []cty.Value) (context.Context, cty.Value, []cty.Value) {
-	ctx, err := ctyutil.GetContextFromValue(args[0])
+	ctx, err := GetContextFromValue(args[0])
 	if err == nil {
 		if len(args) < 2 {
 			return ctx, cty.NilVal, nil
@@ -50,7 +41,7 @@ func makeCallFunction() function.Function {
 		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
 		Type:     function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			ctx, err := ctyutil.GetContextFromValue(args[0])
+			ctx, err := GetContextFromValue(args[0])
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("call: context error: %w", err)
 			}
@@ -65,12 +56,12 @@ func makeCallFunction() function.Function {
 	})
 }
 
-func extractCallable(val cty.Value) (types.Callable, error) {
-	enc, err := ctyutil.GetCapsuleFromValue(val)
+func extractCallable(val cty.Value) (Callable, error) {
+	enc, err := GetCapsuleFromValue(val)
 	if err != nil {
 		return nil, fmt.Errorf("argument is not callable: %w", err)
 	}
-	c, ok := enc.(types.Callable)
+	c, ok := enc.(Callable)
 	if !ok {
 		return nil, fmt.Errorf("%s does not support call()", val.Type().FriendlyName())
 	}
@@ -185,9 +176,9 @@ func makeToStringFunction() function.Function {
 		Params:      []function.Parameter{{Name: "v", Type: cty.DynamicPseudoType}},
 		Type:        function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			enc, err := ctyutil.GetCapsuleFromValue(args[0])
+			enc, err := GetCapsuleFromValue(args[0])
 			if err == nil {
-				if s, ok := enc.(types.Stringable); ok {
+				if s, ok := enc.(Stringable); ok {
 					str, err := s.ToString(context.Background())
 					if err != nil {
 						return cty.NilVal, fmt.Errorf("tostring: %w", err)
@@ -209,9 +200,9 @@ func makeLengthFunction() function.Function {
 		Params:      []function.Parameter{{Name: "v", Type: cty.DynamicPseudoType}},
 		Type:        function.StaticReturnType(cty.Number),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			enc, err := ctyutil.GetCapsuleFromValue(args[0])
+			enc, err := GetCapsuleFromValue(args[0])
 			if err == nil {
-				if l, ok := enc.(types.Lengthable); ok {
+				if l, ok := enc.(Lengthable); ok {
 					n, err := l.Length(context.Background())
 					if err != nil {
 						return cty.NilVal, fmt.Errorf("length: %w", err)
@@ -224,36 +215,36 @@ func makeLengthFunction() function.Function {
 	})
 }
 
-func extractGettable(val cty.Value) (types.Gettable, error) {
-	enc, err := ctyutil.GetCapsuleFromValue(val)
+func extractGettable(val cty.Value) (Gettable, error) {
+	enc, err := GetCapsuleFromValue(val)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
-	g, ok := enc.(types.Gettable)
+	g, ok := enc.(Gettable)
 	if !ok {
 		return nil, fmt.Errorf("get: %s does not support get()", val.Type().FriendlyName())
 	}
 	return g, nil
 }
 
-func extractSettable(val cty.Value) (types.Settable, error) {
-	enc, err := ctyutil.GetCapsuleFromValue(val)
+func extractSettable(val cty.Value) (Settable, error) {
+	enc, err := GetCapsuleFromValue(val)
 	if err != nil {
 		return nil, fmt.Errorf("set: %w", err)
 	}
-	s, ok := enc.(types.Settable)
+	s, ok := enc.(Settable)
 	if !ok {
 		return nil, fmt.Errorf("set: %s does not support set()", val.Type().FriendlyName())
 	}
 	return s, nil
 }
 
-func extractIncrementable(val cty.Value) (types.Incrementable, error) {
-	enc, err := ctyutil.GetCapsuleFromValue(val)
+func extractIncrementable(val cty.Value) (Incrementable, error) {
+	enc, err := GetCapsuleFromValue(val)
 	if err != nil {
 		return nil, fmt.Errorf("increment: %w", err)
 	}
-	i, ok := enc.(types.Incrementable)
+	i, ok := enc.(Incrementable)
 	if !ok {
 		return nil, fmt.Errorf("increment: %s does not support increment()", val.Type().FriendlyName())
 	}
@@ -297,11 +288,11 @@ func makeStateFunction() function.Function {
 		Type:     function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
-			enc, err := ctyutil.GetCapsuleFromValue(thing)
+			enc, err := GetCapsuleFromValue(thing)
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("state: %w", err)
 			}
-			s, ok := enc.(types.Stateful)
+			s, ok := enc.(Stateful)
 			if !ok {
 				return cty.NilVal, fmt.Errorf("state: %s does not support state()", thing.Type().FriendlyName())
 			}
@@ -322,11 +313,11 @@ func makeClearFunction() function.Function {
 		Type:     function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
-			enc, err := ctyutil.GetCapsuleFromValue(thing)
+			enc, err := GetCapsuleFromValue(thing)
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("clear: %w", err)
 			}
-			c, ok := enc.(types.Clearable)
+			c, ok := enc.(Clearable)
 			if !ok {
 				return cty.NilVal, fmt.Errorf("clear: %s does not support clear()", thing.Type().FriendlyName())
 			}
@@ -346,11 +337,11 @@ func makeResetFunction() function.Function {
 		Type:     function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
-			enc, err := ctyutil.GetCapsuleFromValue(thing)
+			enc, err := GetCapsuleFromValue(thing)
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("reset: %w", err)
 			}
-			r, ok := enc.(types.Resettable)
+			r, ok := enc.(Resettable)
 			if !ok {
 				return cty.NilVal, fmt.Errorf("reset: %s does not support reset()", thing.Type().FriendlyName())
 			}
@@ -370,11 +361,11 @@ func makeCountFunction() function.Function {
 		Type:     function.StaticReturnType(cty.Number),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
-			enc, err := ctyutil.GetCapsuleFromValue(thing)
+			enc, err := GetCapsuleFromValue(thing)
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("count: %w", err)
 			}
-			c, ok := enc.(types.Countable)
+			c, ok := enc.(Countable)
 			if !ok {
 				return cty.NilVal, fmt.Errorf("count: %s does not support count()", thing.Type().FriendlyName())
 			}
@@ -387,12 +378,12 @@ func makeCountFunction() function.Function {
 	})
 }
 
-func extractObservable(val cty.Value) (types.Observable, error) {
-	enc, err := ctyutil.GetCapsuleFromValue(val)
+func extractObservable(val cty.Value) (Observable, error) {
+	enc, err := GetCapsuleFromValue(val)
 	if err != nil {
 		return nil, fmt.Errorf("observe: %w", err)
 	}
-	o, ok := enc.(types.Observable)
+	o, ok := enc.(Observable)
 	if !ok {
 		return nil, fmt.Errorf("observe: %s does not support observe()", val.Type().FriendlyName())
 	}
