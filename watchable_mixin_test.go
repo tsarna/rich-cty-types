@@ -18,15 +18,16 @@ type testWatcher struct {
 }
 
 type testChange struct {
-	ctx context.Context
-	old cty.Value
-	new cty.Value
+	ctx    context.Context
+	source Watchable
+	old    cty.Value
+	new    cty.Value
 }
 
-func (w *testWatcher) OnChange(ctx context.Context, old, new cty.Value) {
+func (w *testWatcher) OnChange(ctx context.Context, source Watchable, old, new cty.Value) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.changes = append(w.changes, testChange{ctx, old, new})
+	w.changes = append(w.changes, testChange{ctx, source, old, new})
 }
 
 func (w *testWatcher) count() int {
@@ -46,7 +47,7 @@ func TestWatchableMixin_WatchDedup(t *testing.T) {
 	w := &testWatcher{}
 	m.Watch(w)
 	m.Watch(w) // second registration is a no-op
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 	assert.Equal(t, 1, w.count(), "duplicate Watch should not result in duplicate calls")
 }
 
@@ -54,7 +55,7 @@ func TestWatchableMixin_UnwatchNotRegistered(t *testing.T) {
 	var m WatchableMixin
 	w := &testWatcher{}
 	assert.NotPanics(t, func() { m.Unwatch(w) })
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 	assert.Equal(t, 0, w.count())
 }
 
@@ -62,11 +63,11 @@ func TestWatchableMixin_UnwatchStopsNotifications(t *testing.T) {
 	var m WatchableMixin
 	w := &testWatcher{}
 	m.Watch(w)
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 	assert.Equal(t, 1, w.count())
 
 	m.Unwatch(w)
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 	assert.Equal(t, 1, w.count(), "no new calls after Unwatch")
 }
 
@@ -78,13 +79,29 @@ func TestWatchableMixin_NotifyAll_Values(t *testing.T) {
 	old := cty.NumberIntVal(1)
 	new := cty.NumberIntVal(2)
 	ctx := context.WithValue(bg, "key", "val") //nolint:staticcheck
-	m.NotifyAll(ctx, old, new)
+	m.NotifyAll(ctx, &m, old, new)
 
 	assert.Equal(t, 1, w.count())
 	c := w.get(0)
 	assert.Equal(t, ctx, c.ctx, "context should be forwarded verbatim")
+	assert.Same(t, Watchable(&m), c.source, "source should be forwarded verbatim")
 	assert.True(t, c.old.RawEquals(old))
 	assert.True(t, c.new.RawEquals(new))
+}
+
+func TestWatchableMixin_NotifyAll_DistinctSources(t *testing.T) {
+	// A single Watcher registered with two mixins should be able to tell them apart.
+	var m1, m2 WatchableMixin
+	w := &testWatcher{}
+	m1.Watch(w)
+	m2.Watch(w)
+
+	m1.NotifyAll(bg, &m1, cty.True, cty.False)
+	m2.NotifyAll(bg, &m2, cty.False, cty.True)
+
+	assert.Equal(t, 2, w.count())
+	assert.Same(t, Watchable(&m1), w.get(0).source)
+	assert.Same(t, Watchable(&m2), w.get(1).source)
 }
 
 func TestWatchableMixin_NotifyAll_MultipleWatchers_InOrder(t *testing.T) {
@@ -102,7 +119,7 @@ func TestWatchableMixin_NotifyAll_MultipleWatchers_InOrder(t *testing.T) {
 	m.Watch(w1)
 	m.Watch(w2)
 	m.Watch(w3)
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -118,11 +135,11 @@ func TestWatchableMixin_NotifyAll_Snapshot(t *testing.T) {
 	adder := &adderWatcher{mixin: &m, toAdd: w2, once: &once}
 	m.Watch(adder)
 
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 
 	assert.Equal(t, 0, w2.count(), "watcher added during notifyAll should not receive that call")
 	// On the next call w2 is registered and should receive it.
-	m.NotifyAll(bg, cty.True, cty.False)
+	m.NotifyAll(bg, &m, cty.True, cty.False)
 	assert.Equal(t, 1, w2.count())
 }
 
@@ -133,7 +150,7 @@ type orderWatcher struct {
 	mu    *sync.Mutex
 }
 
-func (w *orderWatcher) OnChange(_ context.Context, _, _ cty.Value) {
+func (w *orderWatcher) OnChange(_ context.Context, _ Watchable, _, _ cty.Value) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	*w.order = append(*w.order, w.id)
@@ -146,6 +163,6 @@ type adderWatcher struct {
 	once  *sync.Once
 }
 
-func (w *adderWatcher) OnChange(_ context.Context, _, _ cty.Value) {
+func (w *adderWatcher) OnChange(_ context.Context, _ Watchable, _, _ cty.Value) {
 	w.once.Do(func() { w.mixin.Watch(w.toAdd) })
 }

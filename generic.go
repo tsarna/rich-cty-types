@@ -108,11 +108,14 @@ type Watchable interface {
 // OnChange is called synchronously, outside the Watchable's internal mutex.
 type Watcher interface {
 	// OnChange is called after the Watchable's value has been updated.
+	// source is the Watchable that fired the notification — useful when the
+	// same Watcher is registered with multiple Watchables and needs to
+	// disambiguate.
 	// oldValue is the value immediately before the change.
 	// newValue is the value immediately after the change.
 	// ctx is the context.Context that was passed to the Set (or Increment) call
 	// that triggered the change.
-	OnChange(ctx context.Context, oldValue, newValue cty.Value)
+	OnChange(ctx context.Context, source Watchable, oldValue, newValue cty.Value)
 }
 
 // WatchableFromCtyValue extracts a Watchable from a cty capsule value,

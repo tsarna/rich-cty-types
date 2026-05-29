@@ -43,11 +43,13 @@ func (m *WatchableMixin) Unwatch(w Watcher) {
 
 // NotifyAll snapshots the watcher list and calls OnChange on each entry.
 // Must be called after the embedding type's value mutex has been released.
-func (m *WatchableMixin) NotifyAll(ctx context.Context, old, new cty.Value) {
+// source is the Watchable that fired the notification; the embedding type
+// should pass itself.
+func (m *WatchableMixin) NotifyAll(ctx context.Context, source Watchable, old, new cty.Value) {
 	m.watchMu.RLock()
 	snapshot := append([]Watcher(nil), m.watchers...)
 	m.watchMu.RUnlock()
 	for _, w := range snapshot {
-		w.OnChange(ctx, old, new)
+		w.OnChange(ctx, source, old, new)
 	}
 }
