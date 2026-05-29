@@ -7,18 +7,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Stringable is implemented by types that have a natural string representation,
-// allowing them to be used with tostring().
-type Stringable interface {
-	ToString(ctx context.Context) (string, error)
-}
-
-// Lengthable is implemented by types that have a meaningful length,
-// allowing them to be used with length().
-type Lengthable interface {
-	Length(ctx context.Context) (int64, error)
-}
-
 // Callable is a pure request/response capability. It is not specific to LLM
 // clients and is designed to cover future types (HTTP, JSON-RPC, MCP, etc.).
 // args contains all arguments after the "thing": the implementor fully controls
@@ -27,32 +15,12 @@ type Callable interface {
 	Call(ctx context.Context, args []cty.Value) (cty.Value, error)
 }
 
-// Gettable is implemented by types whose current value can be read via get().
-// args contains all arguments after the "thing": typically args[0] is the
-// default value, but implementors may interpret additional args freely.
-type Gettable interface {
-	Get(ctx context.Context, args []cty.Value) (cty.Value, error)
-}
-
-// Settable is implemented by types whose value can be updated via set().
-// args contains all arguments after the "thing": args[0] is the value to set;
-// implementors may interpret additional args (e.g. labels) freely.
-type Settable interface {
-	Set(ctx context.Context, args []cty.Value) (cty.Value, error)
-}
-
-// Incrementable is implemented by types that support numeric increment via increment().
-// args contains all arguments after the "thing": args[0] is the delta;
-// implementors may interpret additional args freely.
-type Incrementable interface {
-	Increment(ctx context.Context, args []cty.Value) (cty.Value, error)
-}
-
-// Observable is implemented by types that support observe() (histograms).
-// args contains all arguments after the "thing": args[0] is the observed value;
-// implementors may interpret additional args (e.g. labels) freely.
-type Observable interface {
-	Observe(ctx context.Context, args []cty.Value) (cty.Value, error)
+// Clearable is implemented by types that support the clear() function. On
+// timer and threshold conditions this cancels any pending state, releases any
+// latch, and (for retentive timers) discards accumulated time. Semantically
+// distinct from Resettable.
+type Clearable interface {
+	Clear(ctx context.Context) error
 }
 
 // Countable is implemented by types that maintain a running count accessible
@@ -63,11 +31,45 @@ type Countable interface {
 	Count(ctx context.Context) (int64, error)
 }
 
+// Gettable is implemented by types whose current value can be read via get().
+// args contains all arguments after the "thing": typically args[0] is the
+// default value, but implementors may interpret additional args freely.
+type Gettable interface {
+	Get(ctx context.Context, args []cty.Value) (cty.Value, error)
+}
+
+// Incrementable is implemented by types that support numeric increment via increment().
+// args contains all arguments after the "thing": args[0] is the delta;
+// implementors may interpret additional args freely.
+type Incrementable interface {
+	Increment(ctx context.Context, args []cty.Value) (cty.Value, error)
+}
+
+// Lengthable is implemented by types that have a meaningful length,
+// allowing them to be used with length().
+type Lengthable interface {
+	Length(ctx context.Context) (int64, error)
+}
+
+// Observable is implemented by types that support observe() (histograms).
+// args contains all arguments after the "thing": args[0] is the observed value;
+// implementors may interpret additional args (e.g. labels) freely.
+type Observable interface {
+	Observe(ctx context.Context, args []cty.Value) (cty.Value, error)
+}
+
 // Resettable is implemented by types that can be reset to an initial state
 // via reset(). Used by counter conditions and watchdog triggers. Distinct from
 // the condition-specific clear() semantics on timer/threshold conditions.
 type Resettable interface {
 	Reset(ctx context.Context) error
+}
+
+// Settable is implemented by types whose value can be updated via set().
+// args contains all arguments after the "thing": args[0] is the value to set;
+// implementors may interpret additional args (e.g. labels) freely.
+type Settable interface {
+	Set(ctx context.Context, args []cty.Value) (cty.Value, error)
 }
 
 // Stateful is implemented by types that expose a named internal state via
@@ -77,12 +79,17 @@ type Stateful interface {
 	State(ctx context.Context) (string, error)
 }
 
-// Clearable is implemented by types that support the clear() function. On
-// timer and threshold conditions this cancels any pending state, releases any
-// latch, and (for retentive timers) discards accumulated time. Semantically
-// distinct from Resettable.
-type Clearable interface {
-	Clear(ctx context.Context) error
+// Stringable is implemented by types that have a natural string representation,
+// allowing them to be used with tostring().
+type Stringable interface {
+	ToString(ctx context.Context) (string, error)
+}
+
+// Toggleable is implemented by types whose value can be flipped via toggle().
+// args contains all arguments after the "thing"; implementors may interpret
+// additional args (e.g. labels) freely. Returns the new value after toggling.
+type Toggleable interface {
+	Toggle(ctx context.Context, args []cty.Value) (cty.Value, error)
 }
 
 // Watchable is implemented by types whose value can be observed for changes.
