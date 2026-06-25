@@ -31,6 +31,17 @@ type Countable interface {
 	Count(ctx context.Context) (int64, error)
 }
 
+// Deletable is implemented by types that support removing an entry via
+// delete(). args contains all arguments after the "thing" and identify what to
+// delete: no args means "delete everything", a single arg is a key, and
+// multiple args are reserved to address a nested key path on types that nest
+// (a flat type may reject a path longer than one). Distinct from Clearable,
+// which always removes everything and takes no arguments. Returns a value the
+// implementor chooses (e.g. null).
+type Deletable interface {
+	Delete(ctx context.Context, args []cty.Value) (cty.Value, error)
+}
+
 // Gettable is implemented by types whose current value can be read via get().
 // args contains all arguments after the "thing": typically args[0] is the
 // default value, but implementors may interpret additional args freely.

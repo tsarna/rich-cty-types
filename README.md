@@ -29,6 +29,7 @@ Extracted from [vinculum](https://github.com/tsarna/vinculum), where it powers t
 | `Resettable`    | `Reset(ctx) error`                                                      | `reset()`                  |
 | `Stateful`      | `State(ctx) (string, error)`                                            | `state()`                  |
 | `Clearable`     | `Clear(ctx) error`                                                      | `clear()`                  |
+| `Deletable`     | `Delete(ctx, args) (cty.Value, error)`                                  | `delete()`                 |
 | `Watchable`     | `Watch(Watcher)` / `Unwatch(Watcher)`                                   | change-notification        |
 | `Watcher`       | `OnChange(ctx, old, new cty.Value)`                                     | receiver side              |
 
@@ -55,6 +56,16 @@ obj, err := richcty.NewContextObject(ctx).
 
 `GetContextFromValue` accepts either a raw context capsule or an object with a `_ctx` attribute, so HCL expressions can pass `ctx` directly.
 
+`Build()`'s `_ctx` capsule aliases the builder's own context field. Use `ContextPointer()` to get that same `*context.Context` for a context-mutating capsule, so a write through it is seen by every later `GetContextFromValue` on the built object:
+
+```go
+b := richcty.NewContextObject(ctx)
+p := b.ContextPointer()                 // *context.Context, shared with _ctx
+b.WithAttribute("baggage", newBaggageCapsule(p))
+obj, _ := b.Build()
+// a capsule that does `*p = context.WithValue(*p, …)` is now visible via obj._ctx
+```
+
 ## Capsule helpers
 
 ```go
@@ -79,7 +90,7 @@ for name, fn := range richcty.GetGenericFunctions() {
 }
 ```
 
-Provides: `call`, `get`, `set`, `increment`, `decrement`, `observe`, `tostring`, `length`, `state`, `clear`, `reset`, `count`.
+Provides: `call`, `get`, `set`, `increment`, `decrement`, `observe`, `tostring`, `length`, `state`, `clear`, `delete`, `reset`, `count`.
 
 Most accept an optional leading `ctx` argument — e.g. `get(ctx, thing, default)` or just `get(thing, default)` (falls back to `context.Background()`).
 

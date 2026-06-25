@@ -81,8 +81,20 @@ func (b *ContextObjectBuilder) WithStringAttribute(name string, value string) *C
 	return b
 }
 
+// ContextPointer returns a stable pointer to the builder's context, suitable
+// for context-mutating capsules that must alias the _ctx capsule's cell. Both
+// the _ctx capsule (see Build) and any such capsule route through this pointer,
+// so a write through it (e.g. *p = context.WithValue(*p, …)) is observed by
+// every later GetContextFromValue on the same builder.
+func (b *ContextObjectBuilder) ContextPointer() *context.Context {
+	return &b.Ctx
+}
+
 // Build creates the cty object value for the "ctx" variable.
 func (b *ContextObjectBuilder) Build() (cty.Value, error) {
-	b.Attributes["_ctx"] = NewContextCapsule(b.Ctx)
+	// Route _ctx through ContextPointer so it aliases &b.Ctx rather than a
+	// fresh by-value copy. This lets context-mutating capsules share the same
+	// cell and have their writes observed by later GetContextFromValue calls.
+	b.Attributes["_ctx"] = cty.CapsuleVal(ContextCapsuleType, b.ContextPointer())
 	return cty.ObjectVal(b.Attributes), nil
 }

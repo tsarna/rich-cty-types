@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-25
+
+### Added
+
+- `Deletable` interface and `delete([ctx,] thing [, key...])` generic function
+  for removing entries. No arguments means "delete everything", a single
+  argument is a key, and multiple arguments are reserved for addressing a nested
+  key path on types that nest (a flat type may reject a path longer than one).
+- `ContextObjectBuilder.ContextPointer()` returns a stable `*context.Context`
+  pointing at the builder's own context field. Context-mutating capsules can
+  share this pointer so a write through it (e.g. `*p = context.WithValue(*p,
+  …)`) is observed by every later `GetContextFromValue` on the same builder.
+
+### Changed
+
+- `ContextObjectBuilder.Build()` now routes the `_ctx` capsule through
+  `ContextPointer()`, so it aliases the builder's context field rather than a
+  by-value copy. Existing consumers are unaffected — they still dereference to a
+  `context.Context` — but in-place context mutations are now observable through
+  the built object. Not a breaking API change.
+
 ## [0.2.0] - 2026-05-29
 
 ### Added

@@ -30,6 +30,7 @@ func GetGenericFunctions() map[string]function.Function {
 		"clear":     makeClearFunction(),
 		"count":     makeCountFunction(),
 		"decrement": makeDecrementFunction(),
+		"delete":    makeDeleteFunction(),
 		"get":       makeGetFunction(),
 		"increment": makeIncrementFunction(),
 		"length":    makeLengthFunction(),
@@ -160,6 +161,37 @@ func makeDecrementFunction() function.Function {
 				return cty.NilVal, fmt.Errorf("decrement: %w", err)
 			}
 			return i.Increment(ctx, append([]cty.Value{neg}, rest...))
+		},
+	})
+}
+
+func extractDeletable(val cty.Value) (Deletable, error) {
+	enc, err := GetCapsuleFromValue(val)
+	if err != nil {
+		return nil, fmt.Errorf("delete: %w", err)
+	}
+	d, ok := enc.(Deletable)
+	if !ok {
+		return nil, fmt.Errorf("delete: %s does not support delete()", val.Type().FriendlyName())
+	}
+	return d, nil
+}
+
+// makeDeleteFunction returns a cty function for delete([ctx,] thing, keys...).
+// It removes the named entries from the thing; the thing decides what "key"
+// means and what to return.
+func makeDeleteFunction() function.Function {
+	return function.New(&function.Spec{
+		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			ctx, thing, rest := contextAndThing(args)
+			d, err := extractDeletable(thing)
+			if err != nil {
+				return cty.NilVal, err
+			}
+			return d.Delete(ctx, rest)
 		},
 	})
 }
