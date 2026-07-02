@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ctxKey string
@@ -38,4 +39,18 @@ func TestContextPointerAliasing(t *testing.T) {
 
 	// And the pointer indeed points at the builder's own field.
 	assert.Same(t, &b.Ctx, p)
+}
+
+// TestIsContextObject verifies the RegisterOpenType predicate accepts a context
+// capsule and an object carrying one under _ctx, and rejects anything else.
+func TestIsContextObject(t *testing.T) {
+	capsule := NewContextCapsule(context.Background())
+	assert.NoError(t, IsContextObject(capsule))
+
+	obj, err := NewContextObject(context.Background()).Build()
+	require.NoError(t, err)
+	assert.NoError(t, IsContextObject(obj))
+
+	assert.Error(t, IsContextObject(cty.StringVal("nope")))
+	assert.Error(t, IsContextObject(cty.ObjectVal(map[string]cty.Value{"x": cty.True})))
 }

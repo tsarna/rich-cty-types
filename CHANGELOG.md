@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-01
+
+### Added
+
+- `IsContextObject(cty.Value) error` predicate wrapping `GetContextFromValue`
+  (nil on success, the extraction error otherwise). Suitable for a host's
+  open-type registration (e.g. functy's `Parser.RegisterOpenType("ctx", …)`),
+  naming the context type in type annotations while passing values through
+  untouched.
+
 ## [0.3.0] - 2026-06-25
 
 ### Added

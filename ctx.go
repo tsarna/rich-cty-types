@@ -47,6 +47,16 @@ func GetContextFromValue(val cty.Value) (context.Context, error) {
 	return nil, fmt.Errorf("expected context capsule or object with context as ._ctx, got %s", val.Type().FriendlyName())
 }
 
+// IsContextObject reports whether val satisfies the "ctx" open type: a context
+// capsule, or an object carrying a context capsule under a _ctx attribute. It
+// returns nil when val is a context, else the descriptive error from
+// GetContextFromValue. It is the RegisterOpenType predicate a host uses to name
+// this type in functy annotations, and passes the value through untouched.
+func IsContextObject(val cty.Value) error {
+	_, err := GetContextFromValue(val)
+	return err
+}
+
 // ContextObjectBuilder builds a cty object value for use as the "ctx" variable.
 type ContextObjectBuilder struct {
 	Ctx        context.Context
