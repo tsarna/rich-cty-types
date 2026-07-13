@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Externs()` — the real signatures of the generic functions, for functy hosts.**
+  `externs.cty` (embedded; exposed as opaque bytes via `Externs()` and
+  `ExternsFilename`) declares what `get`/`set`/`count`/… actually accept.
+
+  Each of them takes an optional *leading* context, sniffed out of the first argument
+  at call time. cty can only make a function's *trailing* parameters optional, so that
+  context — and every named trailing argument with it — is swallowed into one anonymous
+  `VarParam`, and the whole family reflects as the useless `get(thing, ...args)`. The
+  declarations say what they really are, so a host's `help()`, generated docs, and
+  editor tooling can show it:
+
+  ```
+  get(ctx?: ctx, thing, fallback?, *args) -> any
+  ```
+
+  This package does **not** import functy — the bytes are opaque here, and `embed` is
+  stdlib. A functy host registers them with
+  `parser.RegisterExterns(richcty.Externs(), richcty.ExternsFilename)`.
+
+  `length()` and `tostring()` are deliberately **not** declared: they have one
+  parameter, no variadic, and a fixed return type, so their cty metadata already states
+  everything true about them. A test enforces the split in both directions — adding a
+  function without an extern, or declaring one that no longer exists, fails the build.
+
+### Changed
+
+- **Every generic function now carries a cty `Description`**, and `length`/`tostring`
+  document their parameter as well. Previously only those two had any description at
+  all and no parameter anywhere was documented, so a `doc()`-style reflection over the
+  cty metadata reported functions that exist but are undocumented.
+
 ## [0.4.0] - 2026-07-01
 
 ### Added

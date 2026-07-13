@@ -59,6 +59,10 @@ func extractCallable(val cty.Value) (Callable, error) {
 // Signature: call(ctx, thing, args...) -> response
 func makeCallFunction() function.Function {
 	return function.New(&function.Spec{
+		// Unlike the rest of this family the context is required, so cty can express
+		// the head of the signature honestly; the variadic tail is genuinely variadic.
+		// externs.cty declares it anyway, to document the arguments.
+		Description: "Invoke a request/response capability: an LLM client, an HTTP endpoint, an MCP tool.",
 		Params: []function.Parameter{
 			{
 				Name: "ctx",
@@ -90,9 +94,13 @@ func makeCallFunction() function.Function {
 // makeClearFunction returns a cty function for clear([ctx,] thing).
 func makeClearFunction() function.Function {
 	return function.New(&function.Spec{
-		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Cancel a thing's pending state: release a latch, drop a pending transition, discard a retentive timer's accumulated time.",
+		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:        function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -114,9 +122,13 @@ func makeClearFunction() function.Function {
 // makeCountFunction returns a cty function for count([ctx,] thing) → number.
 func makeCountFunction() function.Function {
 	return function.New(&function.Spec{
-		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.Number),
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "How many times something has happened — a counter's running total.",
+		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:        function.StaticReturnType(cty.Number),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -140,6 +152,10 @@ func makeCountFunction() function.Function {
 // Delta defaults to 1. Implemented as increment(thing, -delta).
 func makeDecrementFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Subtract from a numeric thing.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -182,9 +198,13 @@ func extractDeletable(val cty.Value) (Deletable, error) {
 // means and what to return.
 func makeDeleteFunction() function.Function {
 	return function.New(&function.Spec{
-		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Remove entries from a thing.",
+		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:        function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			d, err := extractDeletable(thing)
@@ -211,6 +231,10 @@ func extractGettable(val cty.Value) (Gettable, error) {
 // makeGetFunction returns a cty function for get([ctx,] thing [, default, ...]).
 func makeGetFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Read a thing's current value.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -245,6 +269,10 @@ func extractIncrementable(val cty.Value) (Incrementable, error) {
 // makeIncrementFunction returns a cty function for increment([ctx,] thing, delta [, ...]).
 func makeIncrementFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Add to a numeric thing.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -263,12 +291,21 @@ func makeIncrementFunction() function.Function {
 
 // makeLengthFunction returns an enhanced length() that supports Lengthable
 // capsules (and objects with _capsule), falling back to stdlib length.
+//
+// This function carries NO extern (see externs.cty): it has one parameter, no
+// variadic, and a fixed return type, so its cty metadata below already states
+// everything true about it. Keep it that way — an extern here would only be a
+// second place for the same facts to drift.
 func makeLengthFunction() function.Function {
 	fallback := stdlib.LengthFunc
 	return function.New(&function.Spec{
-		Description: "Returns the length of a value; supports Lengthable capsules and objects with _capsule",
-		Params:      []function.Parameter{{Name: "v", Type: cty.DynamicPseudoType}},
-		Type:        function.StaticReturnType(cty.Number),
+		Description: "How many elements a value holds. Distinct from count(), which is how many times something has happened.",
+		Params: []function.Parameter{{
+			Name:        "v",
+			Type:        cty.DynamicPseudoType,
+			Description: "The value to measure: a Lengthable capsule (or a rich object carrying one), or any collection or string.",
+		}},
+		Type: function.StaticReturnType(cty.Number),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			enc, err := GetCapsuleFromValue(args[0])
 			if err == nil {
@@ -300,6 +337,10 @@ func extractObservable(val cty.Value) (Observable, error) {
 // makeObserveFunction returns a cty function for observe([ctx,] thing, value [, ...]).
 func makeObserveFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Record an observation — a sample into a histogram.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -322,9 +363,13 @@ func makeObserveFunction() function.Function {
 // makeResetFunction returns a cty function for reset([ctx,] thing).
 func makeResetFunction() function.Function {
 	return function.New(&function.Spec{
-		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Return a thing to its initial state: zero a counter, re-arm a watchdog.",
+		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:        function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -358,6 +403,10 @@ func extractSettable(val cty.Value) (Settable, error) {
 // makeSetFunction returns a cty function for set([ctx,] thing [, value, ...]).
 func makeSetFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Update a thing's value.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -377,9 +426,13 @@ func makeSetFunction() function.Function {
 // makeStateFunction returns a cty function for state([ctx,] thing) → string.
 func makeStateFunction() function.Function {
 	return function.New(&function.Spec{
-		Params:   []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.String),
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "A thing's named internal state.",
+		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
+		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
+		Type:        function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -414,6 +467,10 @@ func extractToggleable(val cty.Value) (Toggleable, error) {
 // makeToggleFunction returns a cty function for toggle([ctx,] thing [, ...]).
 func makeToggleFunction() function.Function {
 	return function.New(&function.Spec{
+		// The parameters below are a lie cty forces on us: an optional leading
+		// context and every named trailing argument collapse into one anonymous
+		// VarParam. externs.cty carries the real signature.
+		Description: "Flip a boolean-valued thing, returning its new value.",
 		Params: []function.Parameter{
 			{Name: "thing", Type: cty.DynamicPseudoType},
 		},
@@ -432,12 +489,19 @@ func makeToggleFunction() function.Function {
 
 // makeToStringFunction returns an enhanced tostring() that supports Stringable
 // capsules (and objects with _capsule), falling back to stdlib conversion.
+//
+// Like length(), this function carries NO extern (see externs.cty): its cty metadata
+// below is complete on its own.
 func makeToStringFunction() function.Function {
 	fallback := stdlib.MakeToFunc(cty.String)
 	return function.New(&function.Spec{
-		Description: "Converts a value to string; supports Stringable capsules and objects with _capsule",
-		Params:      []function.Parameter{{Name: "v", Type: cty.DynamicPseudoType}},
-		Type:        function.StaticReturnType(cty.String),
+		Description: "Convert a value to its string representation.",
+		Params: []function.Parameter{{
+			Name:        "v",
+			Type:        cty.DynamicPseudoType,
+			Description: "The value to convert: a Stringable capsule (or a rich object carrying one), or any value cty can convert to string.",
+		}},
+		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			enc, err := GetCapsuleFromValue(args[0])
 			if err == nil {

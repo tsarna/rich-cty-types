@@ -1,0 +1,126 @@
+//functy:extern
+
+// Generic capability functions, provided in Go by rich-cty-types
+// (GetGenericFunctions). This file declares their signatures only — it is never
+// compiled, and nothing here is callable.
+//
+// It exists because cty cannot express what these functions really accept. Each
+// takes an *optional leading context*, sniffed out of the first argument at call
+// time; but a cty parameter list can only make its *trailing* parameters optional,
+// so the context — along with every named, documented trailing argument — has been
+// swallowed into one anonymous variadic. Reflected from cty alone, all of these
+// read as `f(thing, ...args)`. What follows is what they actually are.
+//
+// Every function dispatches on `thing` — a capsule value, or a rich object carrying
+// a `_capsule` attribute — to whichever capability interface it implements
+// (Gettable, Settable, …). Trailing arguments are handed to that implementation,
+// which decides what they mean: the names below are the common convention stated by
+// the interface, and a given thing may read them differently (vinculum's baggage
+// takes a key first; a labelled metric takes a label object). Where that happens,
+// the thing's own documentation wins.
+//
+// `ctx` is the request context. It is optional everywhere but call(): omit it and
+// the function runs against a background context, losing tracing, deadlines, and
+// anything else the context carries. Pass it whenever you have one.
+//
+// length() and tostring() are deliberately absent. They have no variadic, take one
+// argument, and return a fixed type, so their cty metadata already says everything
+// true about them — an extern would only be a second place for it to drift.
+
+// Invoke a request/response capability: an LLM client, an HTTP endpoint, an MCP
+// tool. Alone among these, the context is required — a call always crosses a
+// boundary.
+func call(
+    ctx: ctx,  // request context; required
+    thing,  // the thing to call (must be Callable)
+    *args,  // arguments; the thing defines what they mean
+) -> any  // the response
+
+// Cancel a thing's pending state: release a latch, drop a pending transition,
+// discard a retentive timer's accumulated time. Takes nothing beyond the thing.
+// Distinct from reset().
+func clear(
+    ctx?: ctx,  // request context
+    thing,  // the thing to clear (must be Clearable)
+) -> null
+
+// How many times something has happened — a counter's running total. Distinct from
+// length(), which is how many elements a collection holds.
+func count(
+    ctx?: ctx,  // request context
+    thing,  // the thing to count (must be Countable)
+) -> number
+
+// Subtract from a numeric thing. Equivalent to increment() with a negated delta.
+func decrement(
+    ctx?: ctx,  // request context
+    thing,  // the thing to decrement (must be Incrementable)
+    delta: number = 1,  // amount to subtract
+    *args,  // further arguments for the thing (a metric's labels, say)
+) -> any  // the new value
+
+// Remove entries from a thing. With no keys, remove everything; with one key,
+// remove that entry; several keys address a nested path on things that nest.
+func delete(
+    ctx?: ctx,  // request context
+    thing,  // the thing to delete from (must be Deletable)
+    *keys,  // what to remove; none means everything
+) -> any  // the thing chooses (often null)
+
+// Read a thing's current value.
+func get(
+    ctx?: ctx,  // request context
+    thing,  // the thing to read (must be Gettable)
+    // Conventionally the value to return when the thing has none. Some things read
+    // this slot differently: baggage takes a key here, a labelled metric a label
+    // object.
+    fallback?,
+    *args,  // further arguments, interpreted by the thing
+) -> any
+
+// Add to a numeric thing.
+func increment(
+    ctx?: ctx,  // request context
+    thing,  // the thing to increment (must be Incrementable)
+    delta: number,  // amount to add
+    *args,  // further arguments for the thing (a metric's labels, say)
+) -> any  // the new value
+
+// Record an observation — a sample into a histogram.
+func observe(
+    ctx?: ctx,  // request context
+    thing,  // the thing to observe into (must be Observable)
+    value,  // the observed value; required
+    *args,  // further arguments for the thing (a metric's labels, say)
+) -> any
+
+// Return a thing to its initial state: zero a counter, re-arm a watchdog. Takes
+// nothing beyond the thing. Distinct from clear().
+func reset(
+    ctx?: ctx,  // request context
+    thing,  // the thing to reset (must be Resettable)
+) -> null
+
+// Update a thing's value.
+func set(
+    ctx?: ctx,  // request context
+    thing,  // the thing to update (must be Settable)
+    // Conventionally the new value. Some things read this slot differently: baggage
+    // takes a key here, and the value after it.
+    value,
+    *args,  // further arguments, interpreted by the thing
+) -> any  // the value that was set
+
+// A thing's named internal state. Condition blocks use the four-state vocabulary:
+// "inactive", "pending_activation", "active", "pending_deactivation".
+func state(
+    ctx?: ctx,  // request context
+    thing,  // the thing to inspect (must be Stateful)
+) -> string
+
+// Flip a boolean-valued thing, returning its new value.
+func toggle(
+    ctx?: ctx,  // request context
+    thing,  // the thing to toggle (must be Toggleable)
+    *args,  // further arguments for the thing (a metric's labels, say)
+) -> any  // the value after toggling
