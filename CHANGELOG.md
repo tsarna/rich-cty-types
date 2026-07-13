@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-13
+
 ### Added
 
 - **`Externs()` — the real signatures of the generic functions, for functy hosts.**
@@ -20,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   declarations say what they really are, so a host's `help()`, generated docs, and
   editor tooling can show it:
 
-  ```
+  ```text
   get(ctx?: ctx, thing, fallback?, *args) -> any
   ```
 
