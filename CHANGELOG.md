@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-14
+
+### Changed
+
+- **Every cty parameter is now documented**, including the twelve functions that carry an
+  extern. 0.5.0 described each *function* but left their parameters bare, on the grounds
+  that the cty parameters of those twelve are not the real ones anyway — which left a
+  non-functy cty host, whose only view is the metadata, seeing nothing at all.
+
+  They now say what they are, including the part that is awkward: `thing` is declared as
+  the first parameter, but when a context is passed it holds the **context**, and the
+  thing shifts right. cty cannot express an optional *leading* argument, so the
+  declaration is a lie its description had better admit, with a pointer to `externs.cty`
+  for the real signature.
+
 ## [0.5.0] - 2026-07-13
 
 ### Added

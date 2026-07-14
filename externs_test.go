@@ -55,13 +55,28 @@ func TestExternsCarryTheDirective(t *testing.T) {
 		"externs.cty must begin with the //functy:extern directive")
 }
 
-// Every function must carry a cty Description. It is the only documentation a
-// non-functy cty host — or functy's own doc() — can see: doc() reads cty metadata,
-// not the extern, so a missing Description reads as "exists but undocumented" even
-// where help() shows a full block.
-func TestEveryFunctionHasADescription(t *testing.T) {
+// Every function, and every parameter of every function, must carry a cty
+// description — extern or not.
+//
+// The cty metadata is the only documentation a non-functy cty host can see, and the
+// only thing functy's own doc() reads (doc() does not consult the extern), so a gap
+// here reads as "exists but undocumented" even where help() shows a full block. An
+// extern says what a signature *is*; it does not excuse the metadata from saying what
+// the function does.
+//
+// For the twelve declared in externs.cty the cty parameters are, unavoidably, not the
+// real ones — `thing` holds the *context* when one is passed, and the thing shifts
+// right. Their descriptions say so, rather than pretending otherwise.
+func TestEverythingIsDescribed(t *testing.T) {
 	for name, fn := range GetGenericFunctions() {
 		assert.NotEmpty(t, fn.Description(), "%s() has no cty Description", name)
+
+		for _, p := range fn.Params() {
+			assert.NotEmpty(t, p.Description, "%s() parameter %q has no Description", name, p.Name)
+		}
+		if vp := fn.VarParam(); vp != nil {
+			assert.NotEmpty(t, vp.Description, "%s() variadic parameter %q has no Description", name, vp.Name)
+		}
 	}
 }
 

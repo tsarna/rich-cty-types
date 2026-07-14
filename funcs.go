@@ -65,16 +65,22 @@ func makeCallFunction() function.Function {
 		Description: "Invoke a request/response capability: an LLM client, an HTTP endpoint, an MCP tool.",
 		Params: []function.Parameter{
 			{
-				Name: "ctx",
-				Type: cty.DynamicPseudoType,
+				Name:        "ctx",
+				Type:        cty.DynamicPseudoType,
+				Description: "The request context. Required here, unlike the rest of this family.",
 			},
 			{
-				Name: "thing",
-				Type: cty.DynamicPseudoType,
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to call (must be Callable).",
 			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The call arguments; the thing defines what they mean.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, err := GetContextFromValue(args[0])
 			if err != nil {
@@ -98,9 +104,19 @@ func makeClearFunction() function.Function {
 		// context and every named trailing argument collapse into one anonymous
 		// VarParam. externs.cty carries the real signature.
 		Description: "Cancel a thing's pending state: release a latch, drop a pending transition, discard a retentive timer's accumulated time.",
-		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:        function.StaticReturnType(cty.DynamicPseudoType),
+		Params: []function.Parameter{
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to clear (must be Clearable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
+		},
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "Unused: clear() takes no arguments beyond the thing. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -126,9 +142,19 @@ func makeCountFunction() function.Function {
 		// context and every named trailing argument collapse into one anonymous
 		// VarParam. externs.cty carries the real signature.
 		Description: "How many times something has happened — a counter's running total.",
-		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:        function.StaticReturnType(cty.Number),
+		Params: []function.Parameter{
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to count (must be Countable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
+		},
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "Unused: count() takes no arguments beyond the thing. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.Number),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -157,10 +183,18 @@ func makeDecrementFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Subtract from a numeric thing.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to decrement (must be Incrementable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The delta (defaulting to 1), then anything else the thing defines. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			i, err := extractIncrementable(thing)
@@ -202,9 +236,19 @@ func makeDeleteFunction() function.Function {
 		// context and every named trailing argument collapse into one anonymous
 		// VarParam. externs.cty carries the real signature.
 		Description: "Remove entries from a thing.",
-		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:        function.StaticReturnType(cty.DynamicPseudoType),
+		Params: []function.Parameter{
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to delete from (must be Deletable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
+		},
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The keys to remove; none means everything. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			d, err := extractDeletable(thing)
@@ -236,11 +280,16 @@ func makeGetFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Read a thing's current value.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to read (must be Gettable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
 		VarParam: &function.Parameter{
-			Name: "args",
-			Type: cty.DynamicPseudoType,
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The fallback value, then anything else the thing defines. See externs.cty.",
 		},
 		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
@@ -274,10 +323,18 @@ func makeIncrementFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Add to a numeric thing.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to increment (must be Incrementable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The delta, then anything else the thing defines. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			i, err := extractIncrementable(thing)
@@ -342,10 +399,18 @@ func makeObserveFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Record an observation — a sample into a histogram.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to observe into (must be Observable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The observed value, then anything else the thing defines. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			if len(rest) == 0 {
@@ -367,9 +432,19 @@ func makeResetFunction() function.Function {
 		// context and every named trailing argument collapse into one anonymous
 		// VarParam. externs.cty carries the real signature.
 		Description: "Return a thing to its initial state: zero a counter, re-arm a watchdog.",
-		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:        function.StaticReturnType(cty.DynamicPseudoType),
+		Params: []function.Parameter{
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to reset (must be Resettable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
+		},
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "Unused: reset() takes no arguments beyond the thing. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -408,10 +483,18 @@ func makeSetFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Update a thing's value.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to update (must be Settable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "The new value, then anything else the thing defines (a metric's labels, say). See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			s, err := extractSettable(thing)
@@ -430,9 +513,19 @@ func makeStateFunction() function.Function {
 		// context and every named trailing argument collapse into one anonymous
 		// VarParam. externs.cty carries the real signature.
 		Description: "A thing's named internal state.",
-		Params:      []function.Parameter{{Name: "thing", Type: cty.DynamicPseudoType}},
-		VarParam:    &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:        function.StaticReturnType(cty.String),
+		Params: []function.Parameter{
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to inspect (must be Stateful). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
+		},
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "Unused: state() takes no arguments beyond the thing. See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, _ := contextAndThing(args)
 			enc, err := GetCapsuleFromValue(thing)
@@ -472,10 +565,18 @@ func makeToggleFunction() function.Function {
 		// VarParam. externs.cty carries the real signature.
 		Description: "Flip a boolean-valued thing, returning its new value.",
 		Params: []function.Parameter{
-			{Name: "thing", Type: cty.DynamicPseudoType},
+			{
+				Name:        "thing",
+				Type:        cty.DynamicPseudoType,
+				Description: "The thing to toggle (must be Toggleable). When a context is passed, this slot holds the context instead and the thing shifts right — cty cannot express an optional *leading* argument, so these parameters are not the real ones. See externs.cty.",
+			},
 		},
-		VarParam: &function.Parameter{Name: "args", Type: cty.DynamicPseudoType},
-		Type:     function.StaticReturnType(cty.DynamicPseudoType),
+		VarParam: &function.Parameter{
+			Name:        "args",
+			Type:        cty.DynamicPseudoType,
+			Description: "Anything the thing defines (a metric's labels, say). See externs.cty.",
+		},
+		Type: function.StaticReturnType(cty.DynamicPseudoType),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			ctx, thing, rest := contextAndThing(args)
 			t, err := extractToggleable(thing)
