@@ -1,5 +1,17 @@
 # rich-cty-types
 
+> [!WARNING]
+> **Moved.** This package is now `github.com/tsarna/ctyx/richcty`, part of
+> [ctyx](https://github.com/tsarna/ctyx) — nine cty helper modules merged into
+> one. The code and API are unchanged; only the import path moved. This
+> repository is archived and frozen at v0.6.0.
+>
+> `go get github.com/tsarna/ctyx`
+>
+> Consumers must move in step: `Watchable` and `Watcher` name each other, so a
+> type satisfying the old copy's `Watchable` does not satisfy the new one. A
+> mixed build compiles cleanly and fails at runtime.
+
 Generic capability interfaces, dispatcher functions, and `_ctx` / `_capsule` rich-object helpers for [go-cty](https://github.com/zclconf/go-cty).
 
 [![CI](https://github.com/tsarna/rich-cty-types/actions/workflows/ci.yml/badge.svg)](https://github.com/tsarna/rich-cty-types/actions/workflows/ci.yml)

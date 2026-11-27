@@ -1,3 +1,4 @@
+// Deprecated: merged into github.com/tsarna/ctyx as github.com/tsarna/ctyx/richcty.
 module github.com/tsarna/rich-cty-types
 
 go 1.25.8
